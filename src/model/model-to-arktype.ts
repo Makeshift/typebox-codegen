@@ -24,9 +24,9 @@ THE SOFTWARE.
 
 ---------------------------------------------------------------------------*/
 
+import * as Types from '@sinclair/typebox'
 import { Formatter, PropertyEncoder } from '../common/index'
 import { TypeBoxModel } from './model'
-import * as Types from '@sinclair/typebox'
 
 // --------------------------------------------------------------------------
 // ModelToArkType
@@ -64,22 +64,8 @@ export namespace ModelToArkType {
     if (IsTuple(types)) {
       return Reduce(types)
     } else {
-      // For some cases arktype cannot construct types from string literals,
-      // i.e `{ [key: string]: any } | undefined` to `'{} | undefined'`.
-      // Instead, create api chain `type({}).or('undefined')`.
-      const [left, ...right] = types
-      if (IsApiChain(left)) {
-        let chainOperator = null
-        if (operator === '&') {
-          chainOperator = 'intersect'
-        } else if (operator === '|') {
-          chainOperator = 'or'
-        }
-        return [left, ...right.map((v) => `${chainOperator}(${v})`)].join('.')
-      } else {
         const mapped = types.map((type) => Unwrap(type)).join(` ${operator} `)
         return Wrap(mapped)
-      }
     }
   }
   // ------------------------------------------------------------------------
@@ -179,7 +165,7 @@ export namespace ModelToArkType {
       })
       .join(`,`)
     const buffer: string[] = []
-    buffer.push(`type({\n${properties}\n})`)
+    buffer.push(`{${properties}}`)
     import_references.add('type')
     return buffer.join(`\n`)
   }
@@ -187,7 +173,7 @@ export namespace ModelToArkType {
     return Wrap('Promise')
   }
   function Record(schema: Types.TRecord) {
-    return Wrap('never') // not sure how to express
+    return `{ '[string]': 'unknown' }`
   }
   function Ref(schema: Types.TRef) {
     return Wrap(schema.$ref)
